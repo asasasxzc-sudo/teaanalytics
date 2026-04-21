@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云茗荟 (Ymtea) 业务数据分析面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .full-width { grid-column: span 2; }
+        h2 { font-size: 1.2rem; color: #2c3e50; border-left: 4px solid #27ae60; padding-left: 10px; }
+        .explain { background: #e8f5e9; padding: 15px; border-radius: 8px; font-size: 0.9rem; margin-top: 15px; line-height: 1.6; }
+        .loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>www.ymtea.club 流量分析站</h1>
+        <p>实时监控全球茶叶批发意向与访问行为</p>
+    </div>
+
+    <div id="loading" class="loading">正在调取 D1 数据库实时数据...</div>
+
+    <div id="dashboard" class="card-grid" style="display: none;">
+        
+        <div class="card full-width">
+            <h2>访问量增长趋势 (近 30 天)</h2>
+            <canvas id="trendChart"></canvas>
+            <div class="explain">
+                <strong>数据解释：</strong> 曲线图展示了每日访客波动。如果曲线在特定时间点（如周一）大幅波动，说明该时段是茶叶批发商最活跃的搜索期，建议在该时段更新产品库存信息。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>全球访客地理分布</h2>
+            <canvas id="countryChart"></canvas>
+            <div class="explain">
+                <strong>数据解释：</strong> 饼图显示了主要的潜在市场。若某国家占比突然增加，可能代表该地区的黑茶需求正在上升。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>页面受欢迎程度 (点击率)</h2>
+            <canvas id="pageChart"></canvas>
+            <div class="explain">
+                <strong>数据解释：</strong> 展示了哪些茶叶品种（或导航项）被点击最频繁。点击率最低的页面可能需要优化图片或产品介绍。
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>流量来源与关键词吸引力</h2>
+            <div id="keywordList">
+                <p>正在分析 Referer 数据...</p>
+            </div>
+            <div class="explain">
+                <strong>数据解释：</strong> “从哪里点击进入”反映了你的 SEO 效果。如果关键词多为“Tea Bulk Buy”，说明你的批发定位非常精准。
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 配置你的 Worker API 地址
+    const API_URL = 'https://teaanalytics.asasasxzc.workers.dev
+';
+
+    async function initDashboard() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'grid';
+
+            // --- 趋势图 (Line Chart) ---
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.dailyTrend.map(i => i.date),
+                    datasets: [{
+                        label: '访问次数',
+                        data: data.dailyTrend.map(i => i.count),
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                }
+            });
+
+            // --- 地区饼图 (Pie Chart) ---
+            new Chart(document.getElementById('countryChart'), {
+                type: 'pie',
+                data: {
+                    labels: data.countryStats.map(i => i.country),
+                    datasets: [{
+                        data: data.countryStats.map(i => i.value),
+                        backgroundColor: ['#2ecc71', '#3498db', '#e67e22', '#9b59b6', '#f1c40f']
+                    }]
+                }
+            });
+
+            // --- 页面排行 (Horizontal Bar) ---
+            new Chart(document.getElementById('pageChart'), {
+                type: 'bar',
+                indexAxis: 'y',
+                data: {
+                    labels: data.pageStats.map(i => i.path),
+                    datasets: [{
+                        label: '访问量',
+                        data: data.pageStats.map(i => i.count),
+                        backgroundColor: '#34495e'
+                    }]
+                }
+            });
+
+        } catch (error) {
+            document.getElementById('loading').innerText = '数据加载失败，请检查 Worker 配置或跨域设置。';
+            console.error(error);
+        }
+    }
+
+    initDashboard();
+</script>
+
+</body>
+</html>
